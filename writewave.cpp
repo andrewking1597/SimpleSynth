@@ -3,30 +3,30 @@
 #include <cmath>
 
 void write_as_bytes(std::ofstream &file, int value, int byte_size);
-double get_max_val(const double arr[], int size);
-void normalize_array(double arr[], int size, const int max_amplitude=32760);
+double get_max_val(const double arr[], const int size); //? not used
+void normalize_array(double arr[], const int size, const double max_val, const int max_amplitude=32760);
 void array_tofile(const std::string fname, const double arr[], const int sample_rate=44100, const int num_channels=2, const int duration=3, const double frequency=440);
 void write_wav(const std::string fname, const int sample_rate=44100, const int num_channels=2, const int duration=3, const double frequency=440);
 
 int main() {
 
-    write_wav("mywave.wav", 44100, 2, 3, 880);
+    write_wav("mywave.wav", 44100, 2, 8, 880);
 
 
     return 0;
 }
 
-
-/*
-credit: https://www.youtube.com/watch?v=rHqkeLxAsTc (21:30)
-
-convert numerical values to the correct size (b/c standard sizes vary depending on OS)
-*/
 void write_as_bytes(std::ofstream &file, int value, int byte_size) {
+    /*
+    convert numerical values to the correct size (b/c standard sizes vary depending on OS)
+    credit: https://www.youtube.com/watch?v=rHqkeLxAsTc (21:30)
+    */
+
     file.write(reinterpret_cast<const char*>(&value), byte_size);
 }
 
-double get_max_val(const double arr[], int size) {
+//? not used
+double get_max_val(const double arr[], const int size) {
     // determine the max value in arr
     int i;
     double max_val = 0;
@@ -39,13 +39,11 @@ double get_max_val(const double arr[], int size) {
     return max_val;
 }
 
-//todo function overload take an additional param const int max_val (more efficient if max_val is determined while array is being written)
-void normalize_array(double arr[], int size, const int max_amplitude=32760) {
+void normalize_array(double arr[], const int size, const double max_val, const int max_amplitude) {
+    /*
+    Scale values in array so the max value is equal to the max_amplitude allowed
+    */
 
-    // Get max value in arr
-    double max_val = get_max_val(arr, size);
-
-    // scale arr so max_val == max_amplitude
     for (int i = 0; i < size; i++) {
         arr[i] = arr[i] * max_amplitude / max_val;
     }
@@ -53,9 +51,12 @@ void normalize_array(double arr[], int size, const int max_amplitude=32760) {
     return;
 }
 
-void array_tofile(const std::string fname, const double arr[], const int sample_rate=44100, const int num_channels=2, const int duration=3, const double frequency=440) {
-    
-    // Calculate array size
+void array_tofile(const std::string fname, const double arr[], const int sample_rate, const int num_channels, const int duration, const double frequency) {
+    /*
+    Given an array of audio data, write a wav file
+    */
+
+    // Calculate size of arr
     const int size = sample_rate * duration;
 
     //* Set Header Values
@@ -118,10 +119,13 @@ void array_tofile(const std::string fname, const double arr[], const int sample_
     return;
 }
 
-void write_wav(const std::string fname, const int sample_rate=44100, const int num_channels=2, const int duration=3, const double frequency=440) {
+void write_wav(const std::string fname, const int sample_rate, const int num_channels, const int duration, const double frequency) {
+    /*
+    Create a sine wav and write it to a wav file
+    */
 
-    // // keep track of max value being written
-    // double max_val = 0;
+    // keep track of max value being written
+    double max_val = 0;
 
     //* Write the data
     double data[sample_rate*duration*2];
@@ -135,9 +139,9 @@ void write_wav(const std::string fname, const int sample_rate=44100, const int n
         double channel1 = amplitude * value;
         double channel2 = amplitude * value;
 
-        // // if either channel value is greater than max_val: set as max_val
-        // if (channel1 > max_val) {max_val = channel1;}
-        // if (channel2 > max_val) {max_val = channel2;}
+        // if either channel value is greater than max_val: set as max_val
+        if (channel1 > max_val) {max_val = channel1;}
+        if (channel2 > max_val) {max_val = channel2;}
 
         // Write to array
         data[i*2] = channel1;
@@ -145,7 +149,7 @@ void write_wav(const std::string fname, const int sample_rate=44100, const int n
     }
 
     // normalize array
-    normalize_array(data, sample_rate*duration*2);
+    normalize_array(data, sample_rate*duration*2, max_val, 32760);
 
     // write data to wav file
     array_tofile(fname, data, sample_rate, num_channels, duration, frequency);
