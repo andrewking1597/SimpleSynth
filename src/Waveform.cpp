@@ -12,9 +12,11 @@ class Waveform {
         }
         void init_sine();
         void init_square();
+        void init_triangle();
         void print_info(); //? Debugging
         int get_array_size();
         void to_wavfile(std::string fname);
+        std::string get_wavetype();
     private:
         std::vector<double> data;
         double amplitude;
@@ -22,6 +24,7 @@ class Waveform {
         const int sample_rate;
         const int num_channels;
         const int duration;
+        std::string wavetype;
 
         void normalize_array(const double max_val, const int max_amplitude=32760);
         void write_as_bytes(std::ofstream &file, int value, int byte_size);
@@ -31,9 +34,12 @@ void Waveform::init_sine() {
     /* Calculate sine wave values and store in data vector */
 
     // keep track of max value
-    double max_value = 0;
+    double max_value = 0; //? unnecessary b/c max value should always be amplitude + vertical shift
     double min_value = 0;
     double value;
+
+    // Clear data vector
+    this->data.clear();
     
     // loop from 0 -> sample_rate * duration
     for (int i = 0; i < this->sample_rate * this->duration; i++) {
@@ -52,6 +58,9 @@ void Waveform::init_sine() {
     // Normalize array
     this->normalize_array(max_value);
 
+    // Set wavetype to sine
+    this->wavetype = "SINE";
+
     return;
 }
 
@@ -59,6 +68,9 @@ void Waveform::init_square() {
 
     double value;
     int temp;
+
+    // Clear data vector
+    this->data.clear();
 
     for (int i = 0; i < this->sample_rate * this->duration; i++) {
         value = sin((2 * 3.14 * i * this->frequency) / this->sample_rate);
@@ -78,6 +90,9 @@ void Waveform::init_square() {
 
     // Normalize array
     this->normalize_array(1);
+
+    // Set wavetype to square
+    this->wavetype = "SQUARE";
 
     return;
 }
@@ -158,6 +173,19 @@ int Waveform::get_array_size() {
     return this->data.size();
 }
 
+std::string Waveform::get_wavetype() {
+    return this->wavetype;
+}
+
+void Waveform::write_as_bytes(std::ofstream &file, int value, int byte_size) {
+    /*
+    convert numerical values to the correct size (b/c standard sizes vary depending on OS)
+    source: https://www.youtube.com/watch?v=rHqkeLxAsTc (21:30)
+    */
+
+    file.write(reinterpret_cast<const char*>(&value), byte_size);
+}
+
 //? Debugging
 void Waveform::print_info() {
     std::cout << "Amplitude =    " << this->amplitude << std::endl;
@@ -167,13 +195,4 @@ void Waveform::print_info() {
     std::cout << "Duration =     " << this->duration << std::endl;
 
     return;
-}
-
-void Waveform::write_as_bytes(std::ofstream &file, int value, int byte_size) {
-    /*
-    convert numerical values to the correct size (b/c standard sizes vary depending on OS)
-    credit: https://www.youtube.com/watch?v=rHqkeLxAsTc (21:30)
-    */
-
-    file.write(reinterpret_cast<const char*>(&value), byte_size);
 }
