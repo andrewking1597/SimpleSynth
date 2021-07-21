@@ -4,15 +4,15 @@
 #include <string>
 #include <fstream>
 
-class SineWave {
+class Waveform {
     public:
-        SineWave(double amp, double freq, const int rate, const int channels, const int dur) : sample_rate(rate), num_channels(channels), duration(dur) {
+        Waveform(double amp, double freq, const int rate, const int channels, const int dur) : sample_rate(rate), num_channels(channels), duration(dur) {
             this->amplitude = amp;
             this->frequency = freq;
-
-            this->init_wave();
         }
-        void print_info();
+        void init_sine();
+        void init_square();
+        void print_info(); //? Debugging
         int get_array_size();
         void to_wavfile(std::string fname);
     private:
@@ -23,16 +23,16 @@ class SineWave {
         const int num_channels;
         const int duration;
 
-        void init_wave();
         void normalize_array(const double max_val, const int max_amplitude=32760);
         void write_as_bytes(std::ofstream &file, int value, int byte_size);
 };
 
-void SineWave::init_wave() {
+void Waveform::init_sine() {
     /* Calculate sine wave values and store in data vector */
 
     // keep track of max value
     double max_value = 0;
+    double min_value = 0;
     double value;
     
     // loop from 0 -> sample_rate * duration
@@ -46,6 +46,7 @@ void SineWave::init_wave() {
 
         // check max_value and update if needed
         if (value > max_value) {max_value = value;}
+        if (value < min_value) {min_value = value;}
     }
 
     // Normalize array
@@ -54,7 +55,34 @@ void SineWave::init_wave() {
     return;
 }
 
-void SineWave::to_wavfile(std::string fname) {
+void Waveform::init_square() {
+
+    double value;
+    int temp;
+
+    for (int i = 0; i < this->sample_rate * this->duration; i++) {
+        value = sin((2 * 3.14 * i * this->frequency) / this->sample_rate);
+        if (value > 0) {
+            value = 1;
+        } else if (value < 0) {
+            value = -1;
+        } else {
+            value = 0;
+        }
+
+        // push value to data array for each channel
+        for (int j = 0; j < this->num_channels; j++) {
+            this->data.push_back(value);
+        }
+    }
+
+    // Normalize array
+    this->normalize_array(1);
+
+    return;
+}
+
+void Waveform::to_wavfile(std::string fname) {
     /* Write a wav file using the data in data vector */
     
     //* Set Header Values
@@ -116,7 +144,7 @@ void SineWave::to_wavfile(std::string fname) {
     return;
 }
 
-void SineWave::normalize_array(const double max_val, const int max_amplitude) {
+void Waveform::normalize_array(const double max_val, const int max_amplitude) {
     /* Scale values in data so the max value is equal to the max_amplitude allowed */
 
     for (int i = 0; i < this->data.size(); i++) {
@@ -126,22 +154,22 @@ void SineWave::normalize_array(const double max_val, const int max_amplitude) {
     return;
 }
 
-int SineWave::get_array_size() {
+int Waveform::get_array_size() {
     return this->data.size();
 }
 
-void SineWave::print_info() {
+//? Debugging
+void Waveform::print_info() {
     std::cout << "Amplitude =    " << this->amplitude << std::endl;
     std::cout << "Frequency =    " << this->frequency << std::endl;
     std::cout << "Sample Rate =  " << this->sample_rate << std::endl;
     std::cout << "Num Channels = " << this->num_channels << std::endl;
     std::cout << "Duration =     " << this->duration << std::endl;
-    std::cout << "Max Value =    " << this->get_max() << std::endl;
 
     return;
 }
 
-void SineWave::write_as_bytes(std::ofstream &file, int value, int byte_size) {
+void Waveform::write_as_bytes(std::ofstream &file, int value, int byte_size) {
     /*
     convert numerical values to the correct size (b/c standard sizes vary depending on OS)
     credit: https://www.youtube.com/watch?v=rHqkeLxAsTc (21:30)
